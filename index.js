@@ -9,6 +9,7 @@ const helpers = require('./lib/helpers')
 
 stdin(function (data) {
   const info = helpers.getStackInfoFromInput(data)
+  console.log(data)
   if (!info) {
     process.exit(1)
   }
