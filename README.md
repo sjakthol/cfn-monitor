@@ -14,11 +14,11 @@ aws cloudformation update-stack [...] | cfn-monitor
 ### Example
 ```
 $ aws cloudformation create-stack --stack-name data-bucket --template-body file://data-bucket-stack.yaml | cfn-monitor
-2017-07-08T17:22:46.196Z CREATE_IN_PROGRESS AWS::CloudFormation::Stack data-bucket  (Reason: User Initiated)
-2017-07-08T17:22:49.934Z CREATE_IN_PROGRESS AWS::S3::Bucket DataBucket
-2017-07-08T17:22:51.748Z CREATE_IN_PROGRESS AWS::S3::Bucket DataBucket  (Reason: Resource creation Initiated)
-2017-07-08T17:23:12.640Z CREATE_COMPLETE AWS::S3::Bucket DataBucket
-2017-07-08T17:23:16.317Z CREATE_COMPLETE AWS::CloudFormation::Stack data-bucket
+data-bucket 2017-07-08T17:22:46.196Z CREATE_IN_PROGRESS AWS::CloudFormation::Stack data-bucket  (Reason: User Initiated)
+data-bucket 2017-07-08T17:22:49.934Z CREATE_IN_PROGRESS AWS::S3::Bucket DataBucket
+data-bucket 2017-07-08T17:22:51.748Z CREATE_IN_PROGRESS AWS::S3::Bucket DataBucket  (Reason: Resource creation Initiated)
+data-bucket 2017-07-08T17:23:12.640Z CREATE_COMPLETE AWS::S3::Bucket DataBucket
+data-bucket 2017-07-08T17:23:16.317Z CREATE_COMPLETE AWS::CloudFormation::Stack data-bucket
 ```
 
 ## Ideas
