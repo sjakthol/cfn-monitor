@@ -21,6 +21,8 @@ data-bucket 2017-07-08T17:23:12.640Z CREATE_COMPLETE AWS::S3::Bucket DataBucket
 data-bucket 2017-07-08T17:23:16.317Z CREATE_COMPLETE AWS::CloudFormation::Stack data-bucket
 ```
 
+![Demo GIF](https://sjakthol.github.io/cfn-monitor-demo.gif)
+
 ## Ideas
 * Exit value to reflect the result of the operation (success / failure)
 * Support for providing the stack name as argument to support monitoring stack deletion
