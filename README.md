@@ -11,6 +11,19 @@ aws cloudformation create-stack [...] | cfn-monitor
 aws cloudformation update-stack [...] | cfn-monitor
 ```
 
+Alternatively, you can provide one or more CloudFormation stack ARNs as command line arguments:
+```bash
+cfn-monitor \
+    arn:aws:cloudformation:eu-west-1:123456789123:stack/sample/f3e822e2-1204-4805-ac46-f06fb9f90c67 \
+    arn:aws:cloudformation:eu-west-1:123456789123:stack/another/2cb70a0f-377e-4aff-ae7a-a27ebf725e1a
+```
+
+You can also combine them both to see updates from multiple stacks:
+```bash
+aws cloudformation create-stack [...] | cfn-monitor \
+    arn:aws:cloudformation:eu-west-1:123456789123:stack/sample/f3e822e2-1204-4805-ac46-f06fb9f90c67 \
+```
+
 ### Example
 ```
 $ aws cloudformation create-stack --stack-name data-bucket --template-body file://data-bucket-stack.yaml | cfn-monitor

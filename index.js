@@ -10,15 +10,15 @@ const randomColor = require('random-color')
 
 const helpers = require('./lib/helpers')
 
-const rl = readline.createInterface({
-  input: process.stdin
-})
-
-rl.on('line', line => {
-  // echo to stdout
-  console.log(line)
-
-  const info = helpers.getStackInfoFromInput(line)
+/**
+ * Checks the given input for CloudFormation stack ARN and
+ * starts to monitor a stack if one is found from the given
+ * input.
+ *
+ * @param {String} input the input to parse
+ */
+function maybeStartToMonitorStack (input) {
+  const info = helpers.getStackInfoFromInput(input)
   if (!info) {
     return
   }
@@ -33,4 +33,25 @@ rl.on('line', line => {
         e.Timestamp.toISOString(), e.ResourceStatus, e.ResourceType,
         e.LogicalResourceId, reason))
     })
-})
+}
+
+// See if we have a stack ARN(s) given as command line argument(s)
+if (process.argv.length > 2) {
+  process.argv.slice(2).forEach(arg => {
+    maybeStartToMonitorStack(arg)
+  })
+}
+
+// Also check if we have been piped some input and detect stack
+// IDs from there
+if (!process.stdin.isTTY) {
+  const rl = readline.createInterface({
+    input: process.stdin
+  })
+
+  rl.on('line', line => {
+    // echo to stdout
+    console.log(line)
+    maybeStartToMonitorStack(line)
+  })
+}
