@@ -25,7 +25,24 @@ function maybeStartToMonitorStack (input) {
 
   const color = randomColor().hexString()
   const cfn = new AWS.CloudFormation({ region: info.region })
-  EventStream(cfn, info.name)
+  cfn.describeStacks({ StackName: info.arn }, function (err, res) {
+    if (err) {
+      if (err.message.endsWith('does not exist')) {
+        console.log(chalk.hex(color)(info.name), 'Stack does not exist')
+        return
+      } else {
+        throw err
+      }
+    }
+
+    const stack = res.Stacks[0]
+    const status = stack.StackStatus
+    if (!status.endsWith('_IN_PROGRESS')) {
+      console.log(chalk.hex(color)(info.name), 'No operations ongoing')
+      return
+    }
+
+    EventStream(cfn, info.name)
     .on('data', function (e) {
       const reason = e.ResourceStatusReason ? util.format(' (Reason: %s)', e.ResourceStatusReason) : ''
       console.log(util.format('%s %s %s %s %s %s',
@@ -33,6 +50,7 @@ function maybeStartToMonitorStack (input) {
         e.Timestamp.toISOString(), e.ResourceStatus, e.ResourceType,
         e.LogicalResourceId, reason))
     })
+  })
 }
 
 // See if we have a stack ARN(s) given as command line argument(s)
