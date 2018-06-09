@@ -43,13 +43,13 @@ function maybeStartToMonitorStack (input) {
     }
 
     EventStream(cfn, info.name)
-    .on('data', function (e) {
-      const reason = e.ResourceStatusReason ? util.format(' (Reason: %s)', e.ResourceStatusReason) : ''
-      console.log(util.format('%s %s %s %s %s %s',
-        chalk.hex(color)(info.name),
-        e.Timestamp.toISOString(), e.ResourceStatus, e.ResourceType,
-        e.LogicalResourceId, reason))
-    })
+      .on('data', function (e) {
+        const reason = e.ResourceStatusReason ? util.format(' (Reason: %s)', e.ResourceStatusReason) : ''
+        console.log(util.format('%s %s %s %s %s %s',
+          chalk.hex(color)(info.name),
+          e.Timestamp.toISOString(), e.ResourceStatus, e.ResourceType,
+          e.LogicalResourceId, reason))
+      })
   })
 }
 
