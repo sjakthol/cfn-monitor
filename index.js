@@ -81,7 +81,7 @@ function startToMonitorDeletingStacks () {
     // useful if we didn't get any input
     console.error(chalk.red('ERROR') + ': No region configured. Please ' +
       'configure a region with the AWS_REGION variable.')
-    return
+    process.exit(0)
   }
 
   const cfn = new AWS.CloudFormation({ region })
