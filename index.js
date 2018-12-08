@@ -60,7 +60,7 @@ function maybeStartToMonitorStack (input) {
       return
     }
 
-    EventStream(cfn, info.name)
+    EventStream(cfn, info.name, { pollInterval: 1000 })
       .on('data', function (e) {
         const reason = e.ResourceStatusReason ? util.format(' (Reason: %s)', e.ResourceStatusReason) : ''
         console.log(util.format('%s %s %s %s %s %s',
