@@ -24,7 +24,8 @@
     "aws-sdk": "^2.254.1",
     "cfn-stack-event-stream": "0.0.7",
     "chalk": "^2.4.1",
-    "random-color": "^1.0.1"
+    "random-color": "^1.0.1",
+    "ttys": "0.0.3"
   },
   "engines": {
     "node": ">=4"
