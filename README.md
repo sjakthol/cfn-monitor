@@ -24,6 +24,14 @@ aws cloudformation create-stack [...] | cfn-monitor \
     arn:aws:cloudformation:eu-west-1:123456789123:stack/sample/f3e822e2-1204-4805-ac46-f06fb9f90c67 \
 ```
 
+### Monitoring delete-stack Operations
+
+In order to monitor `delete-stack` operations, you will need to define the AWS region to use
+in the `AWS_REGION` environmental variable. The tool starts to monitor stack deletion if the
+input provided to it (stdin or args) does not provide any stack ARNs. Since the `delete-stack`
+command does not output the stack it's operating on, you might need to choose the stack you
+want to monitor. If there's only one stack being deleted, the tool chooses that one automatically.
+
 ### Example
 ```
 $ aws cloudformation create-stack --stack-name data-bucket --template-body file://data-bucket-stack.yaml | cfn-monitor
@@ -38,4 +46,3 @@ data-bucket 2017-07-08T17:23:16.317Z CREATE_COMPLETE AWS::CloudFormation::Stack 
 
 ## Ideas
 * Exit value to reflect the result of the operation (success / failure)
-* Support for providing the stack name as argument to support monitoring stack deletion
