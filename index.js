@@ -7,7 +7,16 @@ const AWS = require('aws-sdk')
 const EventStream = require('cfn-stack-event-stream')
 const chalk = require('chalk')
 const randomColor = require('random-color')
-const ttys = require('ttys')
+
+// Hacks needed to make this compatible with Windows where /dev/tty the ttys
+// module requires might not be available
+const ttys = (() => {
+  try {
+    return require('ttys')
+  } catch (e) {
+    return null
+  }
+})()
 
 const helpers = require('./lib/helpers')
 
@@ -98,6 +107,15 @@ function startToMonitorDeletingStacks () {
 
     if (stacks.length === 1) {
       maybeStartToMonitorStack(stacks[0].StackId)
+      return
+    }
+
+    // Hack: Cannot prompt for input if tty is not available
+    if (!ttys) {
+      console.log(`${chalk.green('INFO')}: ${stacks.length} stacks are being deleted.`)
+      stacks.forEach(stack => {
+        maybeStartToMonitorStack(stack.StackId)
+      })
       return
     }
 
