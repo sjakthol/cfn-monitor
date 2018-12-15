@@ -8,16 +8,6 @@ const EventStream = require('cfn-stack-event-stream')
 const chalk = require('chalk')
 const randomColor = require('random-color')
 
-// Hacks needed to make this compatible with Windows where /dev/tty the ttys
-// module requires might not be available
-const ttys = (() => {
-  try {
-    return require('ttys')
-  } catch (e) {
-    return null
-  }
-})()
-
 const helpers = require('./lib/helpers')
 
 let monitoredStacks = 0
@@ -105,45 +95,9 @@ function startToMonitorDeletingStacks () {
       process.exit(0)
     }
 
-    if (stacks.length === 1) {
-      maybeStartToMonitorStack(stacks[0].StackId)
-      return
-    }
-
-    // Hack: Cannot prompt for input if tty is not available
-    if (!ttys) {
-      console.log(`${chalk.green('INFO')}: ${stacks.length} stacks are being deleted.`)
-      stacks.forEach(stack => {
-        maybeStartToMonitorStack(stack.StackId)
-      })
-      return
-    }
-
-    console.log(`${chalk.green('INFO')}: ${stacks.length} stacks are being deleted.`)
-    stacks.forEach((stack, i) => {
-      console.log(`[${i}] ${stack.StackName}`)
-    })
-    console.log(`[ALL] All of the above`)
-
-    const i = readline.createInterface(ttys.stdin, ttys.stdout)
-    i.question('Type the number of the stacks you want to monitor or all to monitor all stacks: ', function (answer) {
-      if (answer.toLowerCase() === 'all') {
-        stacks.forEach(stack => {
-          maybeStartToMonitorStack(stack.StackId)
-        })
-      } else {
-        const nums = answer.split(', ')
-        nums.forEach(num => {
-          const stack = stacks[num]
-          if (stack) {
-            maybeStartToMonitorStack(stack.StackId)
-          } else {
-            console.log(`[${chalk.green('INFO')}]: Invalid selection ${num}.`)
-          }
-        })
-      }
-
-      maybeExit()
+    console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
+    stacks.forEach(stack => {
+      maybeStartToMonitorStack(stack.StackId)
     })
   })
 }
