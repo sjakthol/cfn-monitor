@@ -4,6 +4,7 @@ const readline = require('readline')
 const util = require('util')
 
 const AWS = require('aws-sdk')
+const regionProvider = require('@aws-sdk/region-provider')
 const EventStream = require('cfn-stack-event-stream')
 const chalk = require('chalk')
 const randomColor = require('random-color')
@@ -74,31 +75,30 @@ function maybeStartToMonitorStack (input) {
 }
 
 function startToMonitorDeletingStacks () {
-  const region = AWS.config.region
-  if (!region) {
+  regionProvider.defaultProvider()().then(function (region) {
+    const cfn = new AWS.CloudFormation({ region })
+    cfn.listStacks({ StackStatusFilter: ['DELETE_IN_PROGRESS'] }, function (err, res) {
+      if (err) {
+        throw err
+      }
+
+      const stacks = res.StackSummaries
+      if (stacks.length === 0) {
+        console.log(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
+        process.exit(0)
+      }
+
+      console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
+      stacks.forEach(stack => {
+        maybeStartToMonitorStack(stack.StackId)
+      })
+    })
+  }, function () {
     // A region hasn't been configured globally; can't do anything
     // useful if we didn't get any input
-    console.error(chalk.red('ERROR') + ': No region configured. Please ' +
+    console.error(chalk.red('ERROR') + ': Failed to determine which region to monitor. Please ' +
       'configure a region with the AWS_REGION variable.')
     process.exit(0)
-  }
-
-  const cfn = new AWS.CloudFormation({ region })
-  cfn.listStacks({ StackStatusFilter: ['DELETE_IN_PROGRESS'] }, function (err, res) {
-    if (err) {
-      throw err
-    }
-
-    const stacks = res.StackSummaries
-    if (stacks.length === 0) {
-      console.log(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
-      process.exit(0)
-    }
-
-    console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
-    stacks.forEach(stack => {
-      maybeStartToMonitorStack(stack.StackId)
-    })
   })
 }
 
