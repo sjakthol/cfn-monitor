@@ -12,9 +12,10 @@ const randomColor = require('random-color')
 const helpers = require('./lib/helpers')
 
 let monitoredStacks = 0
+let inputFinished = false
 
 function maybeExit () {
-  if (monitoredStacks === 0) {
+  if (monitoredStacks === 0 && inputFinished) {
     process.exit(0)
   }
 }
@@ -129,5 +130,7 @@ if (!process.stdin.isTTY) {
         'Starting to monitor stacks that are being deleted.')
       startToMonitorDeletingStacks()
     }
+
+    inputFinished = true
   })
 }
