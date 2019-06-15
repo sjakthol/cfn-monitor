@@ -10,6 +10,10 @@
     "test": "nyc --all mocha",
     "lint": "standard"
   },
+  "files": [
+    "lib/",
+    "index.js"
+  ],
   "keywords": [
     "aws",
     "cloudformation",
