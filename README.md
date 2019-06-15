@@ -4,11 +4,12 @@ the creation or update of a stack.
 ## Usage
 
 To start monitoring the events of a stack, just pipe the output of the awscli
-`create-stack` or `update-stack` command to the `cfn-monitor` tool:
+`create-stack`, `update-stack` or `delete-stack` command to the `cfn-monitor` tool:
 
 ```bash
 aws cloudformation create-stack [...] | cfn-monitor
 aws cloudformation update-stack [...] | cfn-monitor
+aws cloudformation delete-stack [...] | cfn-monitor
 ```
 
 Alternatively, you can provide one or more CloudFormation stack ARNs as command line arguments:
@@ -24,13 +25,11 @@ aws cloudformation create-stack [...] | cfn-monitor \
     arn:aws:cloudformation:eu-west-1:123456789123:stack/sample/f3e822e2-1204-4805-ac46-f06fb9f90c67 \
 ```
 
-### Monitoring delete-stack Operations
-
-In order to monitor `delete-stack` operations, you will need to define the AWS region to use
-in the `AWS_REGION` environmental variable. The tool starts to monitor stack deletion if the
-input provided to it (stdin or args) does not provide any stack ARNs. Since the `delete-stack`
-command does not output the stack it's operating on, you might need to choose the stack you
-want to monitor. If there's only one stack being deleted, the tool chooses that one automatically.
+Finally, you can call `cfn-monitor` without any input or arguments to start monitoring
+all stacks that have active operations:
+```bash
+cfn-monitor
+```
 
 ### Example
 ```

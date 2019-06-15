@@ -11,6 +11,17 @@ const randomColor = require('random-color')
 
 const helpers = require('./lib/helpers')
 
+const IN_PROGRESS_STATUSES = [
+  'CREATE_IN_PROGRESS',
+  'DELETE_IN_PROGRESS',
+  'REVIEW_IN_PROGRESS',
+  'ROLLBACK_IN_PROGRESS',
+  'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+  'UPDATE_IN_PROGRESS',
+  'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+  'UPDATE_ROLLBACK_IN_PROGRESS'
+]
+
 let monitoredStacks = 0
 let inputFinished = false
 
@@ -75,6 +86,34 @@ function maybeStartToMonitorStack (input) {
   })
 }
 
+function startToMonitorInProgressStacks () {
+  regionProvider.defaultProvider()().then(function (region) {
+    const cfn = new AWS.CloudFormation({ region })
+    cfn.listStacks({ StackStatusFilter: IN_PROGRESS_STATUSES }, function (err, res) {
+      if (err) {
+        throw err
+      }
+
+      const stacks = res.StackSummaries
+      if (stacks.length === 0) {
+        console.log(`${chalk.green('INFO')}: No stacks are being created / deleted / updated. Exiting`)
+        process.exit(0)
+      }
+
+      console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being changed.`)
+      stacks.forEach(stack => {
+        maybeStartToMonitorStack(stack.StackId)
+      })
+    })
+  }, function () {
+    // A region hasn't been configured globally; can't do anything
+    // useful if we didn't get any input
+    console.error(chalk.red('ERROR') + ': Failed to determine which region to monitor. Please ' +
+      'configure a region with the AWS_REGION variable.')
+    process.exit(0)
+  })
+}
+
 function startToMonitorDeletingStacks () {
   regionProvider.defaultProvider()().then(function (region) {
     const cfn = new AWS.CloudFormation({ region })
@@ -133,4 +172,10 @@ if (!process.stdin.isTTY) {
 
     inputFinished = true
   })
+} else {
+  if (!monitoredStacks) {
+    console.log(chalk.green('INFO') + ': No input nor stacks from the command ' +
+      'line. Starting to monitor all stacks that are being modified.')
+    startToMonitorInProgressStacks()
+  }
 }
