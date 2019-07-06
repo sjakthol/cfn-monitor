@@ -156,14 +156,25 @@ if (!process.stdin.isTTY) {
     input: process.stdin
   })
 
+  let isDeploy = false
+
   rl.on('line', line => {
     // echo to stdout
     console.log(line)
     maybeStartToMonitorStack(line)
+
+    if (!isDeploy && line.match(/Waiting for stack create\/update to complete/)) {
+      console.log(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
+        'seems to be aws cloudformation deploy. The command does not echo the ' +
+        'stack name it is operating on. Starting to monitor all stacks that are ' +
+        'being modified.')
+      isDeploy = true
+      startToMonitorInProgressStacks()
+    }
   })
 
   rl.on('close', () => {
-    if (!monitoredStacks) {
+    if (!monitoredStacks && !isDeploy) {
       console.log(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
         'did not produce any output. Assuming it was a delete-stack operation. ' +
         'Starting to monitor stacks that are being deleted.')
