@@ -22,6 +22,7 @@ const IN_PROGRESS_STATUSES = [
   'UPDATE_ROLLBACK_IN_PROGRESS'
 ]
 
+const monitoredStackArns = new Set()
 let monitoredStacks = 0
 let inputFinished = false
 
@@ -49,6 +50,12 @@ function maybeStartToMonitorStack (input) {
     return
   }
 
+  if (monitoredStackArns.has(info.arn)) {
+    // Skip this stack. It's being monitored already.
+    return
+  }
+
+  monitoredStackArns.add(info.arn)
   monitoredStacks += 1
 
   const color = randomColor().hexString()
