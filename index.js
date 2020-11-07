@@ -86,6 +86,11 @@ function maybeStartToMonitorStack (input) {
           chalk.hex(color)(info.name),
           e.Timestamp.toISOString(), e.ResourceStatus, e.ResourceType,
           e.LogicalResourceId, reason))
+
+        if (e.ResourceType === 'AWS::CloudFormation::Stack' && e.StackId !== e.PhysicalResourceId) {
+          // This event was about nested stack. Start to monitor that as well
+          maybeStartToMonitorStack(e.PhysicalResourceId)
+        }
       })
       .on('end', function () {
         stackMonitoringFinished()
