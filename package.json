@@ -26,7 +26,7 @@
   "repository": "sjakthol/cfn-monitor",
   "dependencies": {
     "@aws-sdk/region-provider": "0.1.0-preview.1",
-    "aws-sdk": "^2.373.0",
+    "aws-sdk": "^2.787.0",
     "cfn-stack-event-stream": "0.0.7",
     "chalk": "^2.4.1",
     "random-color": "^1.0.1"
