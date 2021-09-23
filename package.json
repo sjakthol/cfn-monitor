@@ -34,14 +34,10 @@
   "engines": {
     "node": ">=4"
   },
-  "pre-commit": [
-    "lint"
-  ],
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^9.1.1",
     "nyc": "^15.0.0",
-    "pre-commit": "^1.2.2",
     "standard": "^16.0.3"
   }
 }
