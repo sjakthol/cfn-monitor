@@ -3,15 +3,22 @@ const chai = require('chai')
 const expect = chai.expect
 const { mockClient } = require('aws-sdk-client-mock')
 
-const { CloudFormationClient } = require('@aws-sdk/client-cloudformation')
+const {
+  CloudFormationClient,
+  DescribeStackEventsCommand
+} = require('@aws-sdk/client-cloudformation')
 
 const cfnEvents = require('../lib/cfn-events')
 const utils = require('./utils')
 const mockCfnEvents = require('./mock-cfn-events')
 
 describe('cfn-events', function () {
-  const cfMock = mockClient(CloudFormationClient)
-  beforeEach(() => {
+  let cfMock
+  before(() => {
+    cfMock = mockClient(CloudFormationClient)
+  })
+
+  afterEach(() => {
     cfMock.reset()
   })
 
@@ -21,7 +28,7 @@ describe('cfn-events', function () {
 
   it('should poll stack events correctly', async function () {
     cfMock
-      .onAnyCommand({
+      .on(DescribeStackEventsCommand, {
         StackName: 'test-stack-id'
       })
       .callsFake(mockCfnEvents.mockDescribeStackEvents(mockCfnEvents.SampleStackEventsPerPollingRound))
@@ -46,31 +53,10 @@ describe('cfn-events', function () {
 
   it('should poll stack events correctly with default polling interval', async function () {
     cfMock
-      .onAnyCommand({
+      .on(DescribeStackEventsCommand, {
         StackName: 'test-stack-id'
       })
-      .callsFake(mockCfnEvents.mockDescribeStackEvents([
-        [
-          {
-            ResourceType: 'AWS::CloudFormation::Stack',
-            LogicalResourceId: 'test-stack',
-            ResourceStatus: 'CREATE_COMPLETE',
-            StackId: 'test-stack-id',
-            StackName: 'test-stack',
-            Timestamp: new Date(),
-            EventId: '0002'
-          },
-          {
-            ResourceType: 'AWS::CloudFormation::Stack',
-            LogicalResourceId: 'test-stack',
-            ResourceStatus: 'CREATE_COMPLETE',
-            StackId: 'test-stack-id',
-            StackName: 'test-stack',
-            Timestamp: new Date(),
-            EventId: '0001'
-          }
-        ]
-      ]))
+      .callsFake(mockCfnEvents.mockDescribeStackEvents(mockCfnEvents.SampleStackEventsPerPollingRoundSimple))
     const events = await utils.asyncGeneratorToArray(
       cfnEvents.streamStackEvents(
         'test-stack',
@@ -79,8 +65,10 @@ describe('cfn-events', function () {
       )
     )
     expect(events.map((e) => e.EventId)).to.deep.equal([
-      '0001',
-      '0002'
+      '0002',
+      '0003',
+      '0004',
+      '0005'
     ])
   })
 })

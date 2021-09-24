@@ -3,12 +3,17 @@
 const readline = require('readline')
 const util = require('util')
 
+const {
+  CloudFormationClient,
+  DescribeStacksCommand
+} = require('@aws-sdk/client-cloudformation')
 const AWS = require('@aws-sdk/client-cloudformation')
 const chalk = require('chalk')
 const randomColor = require('random-color')
 
-const helpers = require('./lib/helpers')
 const cfnEvents = require('./lib/cfn-events')
+const helpers = require('./lib/helpers')
+const output = require('./lib/output')
 
 const IN_PROGRESS_STATUSES = [
   'CREATE_IN_PROGRESS',
@@ -58,10 +63,11 @@ async function maybeStartToMonitorStack (input) {
   monitoredStacks += 1
 
   const color = randomColor().hexString()
-  const cfn = new AWS.CloudFormation({ region: info.region })
-  const res = await cfn.describeStacks({ StackName: info.arn }).catch((err) => {
+  const cfn = new CloudFormationClient({ region: info.region })
+  const cmd = new DescribeStacksCommand({ StackName: info.arn })
+  const res = await cfn.send(cmd).catch((err) => {
     if (err.message.endsWith('does not exist')) {
-      console.log(chalk.hex(color)(info.name), 'Stack does not exist')
+      output.write(chalk.hex(color)(info.name), 'Stack does not exist')
       stackMonitoringFinished()
       return
     }
@@ -74,11 +80,12 @@ async function maybeStartToMonitorStack (input) {
   const stack = res.Stacks[0]
   const status = stack.StackStatus
   if (!status.endsWith('_IN_PROGRESS')) {
-    console.log(chalk.hex(color)(info.name), 'No operations ongoing')
+    output.write(chalk.hex(color)(info.name), 'No operations ongoing')
     stackMonitoringFinished()
     return
   }
 
+  const nestedStacks = []
   for await (const e of cfnEvents.streamStackEvents(
     stack.StackName,
     stack.StackId,
@@ -87,7 +94,7 @@ async function maybeStartToMonitorStack (input) {
     const reason = e.ResourceStatusReason
       ? util.format(' (Reason: %s)', e.ResourceStatusReason)
       : ''
-    console.log(
+    output.write(
       util.format(
         '%s %s %s %s %s %s',
         chalk.hex(color)(info.name),
@@ -104,10 +111,11 @@ async function maybeStartToMonitorStack (input) {
       e.StackId !== e.PhysicalResourceId
     ) {
       // This event was about nested stack. Start to monitor that as well
-      maybeStartToMonitorStack(e.PhysicalResourceId)
+      nestedStacks.push(maybeStartToMonitorStack(e.PhysicalResourceId))
     }
   }
 
+  await Promise.all(nestedStacks)
   stackMonitoringFinished()
 }
 
@@ -116,7 +124,7 @@ async function startToMonitorInProgressStacks () {
   const res = await cfn.listStacks({ StackStatusFilter: IN_PROGRESS_STATUSES })
   const stacks = res.StackSummaries
   if (stacks.length === 0) {
-    console.log(
+    output.write(
       `${chalk.green(
         'INFO'
       )}: No stacks are being created / deleted / updated. Exiting`
@@ -124,7 +132,7 @@ async function startToMonitorInProgressStacks () {
     process.exit(0)
   }
 
-  console.log(
+  output.write(
     `${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'
     } being changed.`
   )
@@ -141,61 +149,73 @@ async function startToMonitorDeletingStacks () {
 
   const stacks = res.StackSummaries
   if (stacks.length === 0) {
-    console.log(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
+    output.write(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
     process.exit(0)
   }
 
-  console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
+  output.write(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
   stacks.forEach(stack => {
     maybeStartToMonitorStack(stack.StackId)
   })
 }
 
-// See if we have a stack ARN(s) given as command line argument(s)
-if (process.argv.length > 2) {
-  process.argv.slice(2).forEach(arg => {
-    maybeStartToMonitorStack(arg)
-  })
-}
+function run () {
+  // See if we have a stack ARN(s) given as command line argument(s)
+  if (process.argv.length > 2) {
+    process.argv.slice(2).forEach(arg => {
+      maybeStartToMonitorStack(arg)
+    })
+  }
 
-// Also check if we have been piped some input and detect stack
-// IDs from there
-if (!process.stdin.isTTY) {
-  const rl = readline.createInterface({
-    input: process.stdin
-  })
+  // Also check if we have been piped some input and detect stack
+  // IDs from there
+  if (!process.stdin.isTTY) {
+    const rl = readline.createInterface({
+      input: process.stdin
+    })
 
-  let isDeploy = false
+    let isDeploy = false
 
-  rl.on('line', line => {
-    // echo to stdout
-    console.log(line)
-    maybeStartToMonitorStack(line)
+    rl.on('line', line => {
+      // echo to stdout
+      output.write(line)
+      maybeStartToMonitorStack(line)
 
-    if (!isDeploy && line.match(/Waiting for stack create\/update to complete/)) {
-      console.log(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
-        'seems to be aws cloudformation deploy. The command does not echo the ' +
-        'stack name it is operating on. Starting to monitor all stacks that are ' +
-        'being modified.')
-      isDeploy = true
+      if (!isDeploy && line.match(/Waiting for stack create\/update to complete/)) {
+        output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
+          'seems to be aws cloudformation deploy. The command does not echo the ' +
+          'stack name it is operating on. Starting to monitor all stacks that are ' +
+          'being modified.')
+        isDeploy = true
+        startToMonitorInProgressStacks()
+      }
+    })
+
+    rl.on('close', () => {
+      if (!monitoredStacks && !isDeploy) {
+        output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
+          'did not produce any output. Assuming it was a delete-stack operation. ' +
+          'Starting to monitor stacks that are being deleted.')
+        startToMonitorDeletingStacks()
+      }
+
+      inputFinished = true
+    })
+  } else {
+    if (!monitoredStacks) {
+      output.write(chalk.green('INFO') + ': No input nor stacks from the command ' +
+        'line. Starting to monitor all stacks that are being modified.')
       startToMonitorInProgressStacks()
     }
-  })
-
-  rl.on('close', () => {
-    if (!monitoredStacks && !isDeploy) {
-      console.log(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
-        'did not produce any output. Assuming it was a delete-stack operation. ' +
-        'Starting to monitor stacks that are being deleted.')
-      startToMonitorDeletingStacks()
-    }
-
-    inputFinished = true
-  })
-} else {
-  if (!monitoredStacks) {
-    console.log(chalk.green('INFO') + ': No input nor stacks from the command ' +
-      'line. Starting to monitor all stacks that are being modified.')
-    startToMonitorInProgressStacks()
   }
+}
+
+if (require.main === module) {
+  run()
+}
+
+module.exports = {
+  startToMonitorInProgressStacks,
+  startToMonitorDeletingStacks,
+  maybeStartToMonitorStack
 }
