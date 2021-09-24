@@ -3,13 +3,12 @@
 const readline = require('readline')
 const util = require('util')
 
-const AWS = require('aws-sdk')
-const regionProvider = require('@aws-sdk/region-provider')
-const EventStream = require('cfn-stack-event-stream')
+const AWS = require('@aws-sdk/client-cloudformation')
 const chalk = require('chalk')
 const randomColor = require('random-color')
 
 const helpers = require('./lib/helpers')
+const cfnEvents = require('./lib/cfn-events')
 
 const IN_PROGRESS_STATUSES = [
   'CREATE_IN_PROGRESS',
@@ -44,7 +43,7 @@ function stackMonitoringFinished () {
  *
  * @param {String} input the input to parse
  */
-function maybeStartToMonitorStack (input) {
+async function maybeStartToMonitorStack (input) {
   const info = helpers.getStackInfoFromInput(input)
   if (!info) {
     return
@@ -60,97 +59,95 @@ function maybeStartToMonitorStack (input) {
 
   const color = randomColor().hexString()
   const cfn = new AWS.CloudFormation({ region: info.region })
-  cfn.describeStacks({ StackName: info.arn }, function (err, res) {
-    if (err) {
-      if (err.message.endsWith('does not exist')) {
-        console.log(chalk.hex(color)(info.name), 'Stack does not exist')
-        stackMonitoringFinished()
-        return
-      } else {
-        throw err
-      }
-    }
-
-    const stack = res.Stacks[0]
-    const status = stack.StackStatus
-    if (!status.endsWith('_IN_PROGRESS')) {
-      console.log(chalk.hex(color)(info.name), 'No operations ongoing')
+  const res = await cfn.describeStacks({ StackName: info.arn }).catch((err) => {
+    if (err.message.endsWith('does not exist')) {
+      console.log(chalk.hex(color)(info.name), 'Stack does not exist')
       stackMonitoringFinished()
       return
     }
 
-    EventStream(cfn, info.name, { pollInterval: 1000 })
-      .on('data', function (e) {
-        const reason = e.ResourceStatusReason ? util.format(' (Reason: %s)', e.ResourceStatusReason) : ''
-        console.log(util.format('%s %s %s %s %s %s',
-          chalk.hex(color)(info.name),
-          e.Timestamp.toISOString(), e.ResourceStatus, e.ResourceType,
-          e.LogicalResourceId, reason))
+    throw err
+  })
+  if (!res) {
+    return
+  }
+  const stack = res.Stacks[0]
+  const status = stack.StackStatus
+  if (!status.endsWith('_IN_PROGRESS')) {
+    console.log(chalk.hex(color)(info.name), 'No operations ongoing')
+    stackMonitoringFinished()
+    return
+  }
 
-        if (e.ResourceType === 'AWS::CloudFormation::Stack' && e.StackId !== e.PhysicalResourceId) {
-          // This event was about nested stack. Start to monitor that as well
-          maybeStartToMonitorStack(e.PhysicalResourceId)
-        }
-      })
-      .on('end', function () {
-        stackMonitoringFinished()
-      })
+  for await (const e of cfnEvents.streamStackEvents(
+    stack.StackName,
+    stack.StackId,
+    info.region
+  )) {
+    const reason = e.ResourceStatusReason
+      ? util.format(' (Reason: %s)', e.ResourceStatusReason)
+      : ''
+    console.log(
+      util.format(
+        '%s %s %s %s %s %s',
+        chalk.hex(color)(info.name),
+        e.Timestamp.toISOString(),
+        e.ResourceStatus,
+        e.ResourceType,
+        e.LogicalResourceId,
+        reason
+      )
+    )
+
+    if (
+      e.ResourceType === 'AWS::CloudFormation::Stack' &&
+      e.StackId !== e.PhysicalResourceId
+    ) {
+      // This event was about nested stack. Start to monitor that as well
+      maybeStartToMonitorStack(e.PhysicalResourceId)
+    }
+  }
+
+  stackMonitoringFinished()
+}
+
+async function startToMonitorInProgressStacks () {
+  const cfn = new AWS.CloudFormation({})
+  const res = await cfn.listStacks({ StackStatusFilter: IN_PROGRESS_STATUSES })
+  const stacks = res.StackSummaries
+  if (stacks.length === 0) {
+    console.log(
+      `${chalk.green(
+        'INFO'
+      )}: No stacks are being created / deleted / updated. Exiting`
+    )
+    process.exit(0)
+  }
+
+  console.log(
+    `${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'
+    } being changed.`
+  )
+  stacks.forEach((stack) => {
+    maybeStartToMonitorStack(stack.StackId)
   })
 }
 
-function startToMonitorInProgressStacks () {
-  regionProvider.defaultProvider()().then(function (region) {
-    const cfn = new AWS.CloudFormation({ region })
-    cfn.listStacks({ StackStatusFilter: IN_PROGRESS_STATUSES }, function (err, res) {
-      if (err) {
-        throw err
-      }
-
-      const stacks = res.StackSummaries
-      if (stacks.length === 0) {
-        console.log(`${chalk.green('INFO')}: No stacks are being created / deleted / updated. Exiting`)
-        process.exit(0)
-      }
-
-      console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being changed.`)
-      stacks.forEach(stack => {
-        maybeStartToMonitorStack(stack.StackId)
-      })
-    })
-  }, function () {
-    // A region hasn't been configured globally; can't do anything
-    // useful if we didn't get any input
-    console.error(chalk.red('ERROR') + ': Failed to determine which region to monitor. Please ' +
-      'configure a region with the AWS_REGION variable.')
-    process.exit(0)
+async function startToMonitorDeletingStacks () {
+  const cfn = new AWS.CloudFormation({})
+  const res = await cfn.listStacks({
+    StackStatusFilter: ['DELETE_IN_PROGRESS']
   })
-}
 
-function startToMonitorDeletingStacks () {
-  regionProvider.defaultProvider()().then(function (region) {
-    const cfn = new AWS.CloudFormation({ region })
-    cfn.listStacks({ StackStatusFilter: ['DELETE_IN_PROGRESS'] }, function (err, res) {
-      if (err) {
-        throw err
-      }
-
-      const stacks = res.StackSummaries
-      if (stacks.length === 0) {
-        console.log(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
-        process.exit(0)
-      }
-
-      console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
-      stacks.forEach(stack => {
-        maybeStartToMonitorStack(stack.StackId)
-      })
-    })
-  }, function () {
-    // A region hasn't been configured globally; can't do anything
-    // useful if we didn't get any input
-    console.error(chalk.red('ERROR') + ': Failed to determine which region to monitor. Please ' +
-      'configure a region with the AWS_REGION variable.')
+  const stacks = res.StackSummaries
+  if (stacks.length === 0) {
+    console.log(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
     process.exit(0)
+  }
+
+  console.log(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
+  stacks.forEach(stack => {
+    maybeStartToMonitorStack(stack.StackId)
   })
 }
 
