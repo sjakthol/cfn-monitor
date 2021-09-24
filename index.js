@@ -156,10 +156,11 @@ async function startToMonitorDeletingStacks () {
 }
 
 function run () {
+  const promises = []
   // See if we have a stack ARN(s) given as command line argument(s)
   if (process.argv.length > 2) {
     process.argv.slice(2).forEach(arg => {
-      maybeStartToMonitorStack(arg)
+      promises.push(maybeStartToMonitorStack(arg))
     })
   }
 
@@ -175,7 +176,7 @@ function run () {
     rl.on('line', line => {
       // echo to stdout
       output.write(line)
-      maybeStartToMonitorStack(line)
+      promises.push(maybeStartToMonitorStack(line))
 
       if (!isDeploy && line.match(/Waiting for stack create\/update to complete/)) {
         output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
@@ -183,7 +184,7 @@ function run () {
           'stack name it is operating on. Starting to monitor all stacks that are ' +
           'being modified.')
         isDeploy = true
-        startToMonitorInProgressStacks()
+        promises.push(startToMonitorInProgressStacks())
       }
     })
 
@@ -192,7 +193,7 @@ function run () {
         output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
           'did not produce any output. Assuming it was a delete-stack operation. ' +
           'Starting to monitor stacks that are being deleted.')
-        startToMonitorDeletingStacks()
+        promises.push(startToMonitorDeletingStacks())
       }
 
       inputFinished = true
@@ -201,9 +202,11 @@ function run () {
     if (!monitoredStacks) {
       output.write(chalk.green('INFO') + ': No input nor stacks from the command ' +
         'line. Starting to monitor all stacks that are being modified.')
-      startToMonitorInProgressStacks()
+      promises.push(startToMonitorInProgressStacks())
     }
   }
+
+  return promises
 }
 
 /* istanbul ignore next */
@@ -214,5 +217,6 @@ if (require.main === module) {
 module.exports = {
   startToMonitorInProgressStacks,
   startToMonitorDeletingStacks,
-  maybeStartToMonitorStack
+  maybeStartToMonitorStack,
+  run
 }
