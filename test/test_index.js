@@ -6,7 +6,7 @@ chai.use(require('sinon-chai'))
 chai.use(require('dirty-chai'))
 
 const { mockClient } = require('aws-sdk-client-mock')
-const { CloudFormationClient, DescribeStacksCommand, DescribeStackEventsCommand } = require('@aws-sdk/client-cloudformation')
+const { CloudFormationClient, DescribeStacksCommand, DescribeStackEventsCommand, ListStacksCommand } = require('@aws-sdk/client-cloudformation')
 
 const index = require('../index')
 const output = require('../lib/output')
@@ -17,12 +17,16 @@ const SAMPLE_STACK_ARN = 'arn:aws:cloudformation:eu-west-1:0123456789012:stack/t
 describe('index', function () {
   let cfMock
   let logStub
+  let sandbox
 
   const getLogLines = () => logStub.getCalls().map(call => call.args.join(' '))
+  const getSampleArn = n => (SAMPLE_STACK_ARN + n).replace('test-stack', `test-stack-${n}`)
 
   before(() => {
     cfMock = mockClient(CloudFormationClient)
-    logStub = sinon.stub(output, 'write')
+    sandbox = sinon.createSandbox()
+    logStub = sandbox.stub(output, 'write')
+    sandbox.stub(process, 'exit')
   })
 
   beforeEach(() => {
@@ -31,11 +35,12 @@ describe('index', function () {
 
   afterEach(() => {
     cfMock.reset()
-    logStub.reset()
+    sandbox.reset()
   })
 
   after(() => {
     cfMock.restore()
+    sandbox.restore()
   })
 
   describe('maybeStartToMonitorStack', function () {
@@ -142,8 +147,8 @@ describe('index', function () {
     })
 
     it('should monitor nested stacks as well', async function () {
-      const arn6 = (SAMPLE_STACK_ARN + 6).replace('test-stack', 'test-stack-6')
-      const arn7 = (SAMPLE_STACK_ARN + 7).replace('test-stack', 'test-stack-7')
+      const arn6 = getSampleArn(6)
+      const arn7 = getSampleArn(7)
       cfMock.on(DescribeStacksCommand, {
         StackName: arn6
       })
@@ -243,6 +248,187 @@ describe('index', function () {
 
       await index.maybeStartToMonitorStack(arn6)
       expect(getLogLines()).to.have.lengthOf(6)
+    })
+  })
+
+  describe('startToMonitorInProgressStacks', function () {
+    it('should exit of no stacks are modified', async function () {
+      cfMock.on(ListStacksCommand)
+        .resolves({
+          StackSummaries: []
+        })
+
+      await index.startToMonitorInProgressStacks()
+
+      const logLines = getLogLines()
+      expect(logLines).to.have.lengthOf(1)
+      expect(logLines[0]).to.match(/No stacks are being created/)
+    })
+
+    it('should start to monitor in-progress stacks', async function () {
+      const arn8 = getSampleArn(8)
+      const arn9 = getSampleArn(9)
+      cfMock.on(ListStacksCommand)
+        .resolves({
+          StackSummaries: [{
+            StackId: arn8
+          },
+          {
+            StackId: arn9
+          }]
+        })
+
+      cfMock.on(DescribeStacksCommand, {
+        StackName: arn8
+      })
+        .resolves({
+          Stacks: [{
+            StackStatus: 'CREATE_IN_PROGRESS',
+            StackName: 'test-stack-8',
+            StackId: arn8,
+            CreationTime: new Date()
+          }]
+        })
+
+      cfMock.on(DescribeStacksCommand, {
+        StackName: arn9
+      })
+        .resolves({
+          Stacks: [{
+            StackStatus: 'CREATE_IN_PROGRESS',
+            StackName: 'test-stack-9',
+            StackId: arn9,
+            CreationTime: new Date()
+          }]
+        })
+
+      cfMock.on(DescribeStackEventsCommand, {
+        StackName: arn8
+      })
+        .callsFake(mockCfnEvents.mockDescribeStackEvents([[
+          {
+            ResourceType: 'AWS::CloudFormation::Stack',
+            LogicalResourceId: 'test-stack-8',
+            PhysicalResourceId: arn8,
+            ResourceStatus: 'CREATE_COMPLETE',
+            StackId: arn8,
+            StackName: 'test-stack-8',
+            Timestamp: new Date(),
+            EventId: '0002'
+          },
+          {
+            ResourceType: 'AWS::CloudFormation::Stack',
+            LogicalResourceId: 'test-stack-8',
+            PhysicalResourceId: arn8,
+            ResourceStatus: 'CREATE_IN_PROGRESS',
+            ResourceStatusReason: 'User Initiated',
+            StackId: arn8,
+            StackName: 'test-stack-8',
+            Timestamp: new Date(),
+            EventId: '0001'
+          }
+        ]]))
+      cfMock.on(DescribeStackEventsCommand, {
+        StackName: arn9
+      }).callsFake(mockCfnEvents.mockDescribeStackEvents([[
+        {
+          ResourceType: 'AWS::CloudFormation::Stack',
+          LogicalResourceId: 'test-stack-9',
+          PhysicalResourceId: arn9,
+          ResourceStatus: 'CREATE_COMPLETE',
+          StackId: arn9,
+          StackName: 'test-stack-9',
+          Timestamp: new Date(),
+          EventId: '0002'
+        },
+        {
+          ResourceType: 'AWS::CloudFormation::Stack',
+          LogicalResourceId: 'test-stack-9',
+          PhysicalResourceId: arn9,
+          ResourceStatus: 'CREATE_IN_PROGRESS',
+          ResourceStatusReason: 'User Initiated',
+          StackId: arn9,
+          StackName: 'test-stack-9',
+          Timestamp: new Date(),
+          EventId: '0001'
+        }
+      ]]))
+
+      await index.startToMonitorInProgressStacks()
+
+      const logLines = getLogLines()
+      expect(logLines).to.have.lengthOf(5)
+      expect(logLines[0]).to.match(/2 stacks are being changed./)
+    })
+  })
+
+  describe('startToMonitorDeletingStacks', function () {
+    it('should exit of no stacks are being deleted', async function () {
+      cfMock.on(ListStacksCommand)
+        .resolves({
+          StackSummaries: []
+        })
+
+      await index.startToMonitorDeletingStacks()
+
+      const logLines = getLogLines()
+      expect(logLines).to.have.lengthOf(1)
+      expect(logLines[0]).to.match(/No stacks are being deleted/)
+    })
+
+    it('should start to monitor deleting stacks', async function () {
+      const arn10 = getSampleArn(10)
+      cfMock.on(ListStacksCommand)
+        .resolves({
+          StackSummaries: [{
+            StackId: arn10
+          }]
+        })
+
+      cfMock.on(DescribeStacksCommand, {
+        StackName: arn10
+      })
+        .resolves({
+          Stacks: [{
+            StackStatus: 'DELETE_IN_PROGRESS',
+            StackName: 'test-stack-10',
+            StackId: arn10,
+            CreationTime: new Date()
+          }]
+        })
+
+      cfMock.on(DescribeStackEventsCommand, {
+        StackName: arn10
+      })
+        .callsFake(mockCfnEvents.mockDescribeStackEvents([[
+          {
+            ResourceType: 'AWS::CloudFormation::Stack',
+            LogicalResourceId: 'test-stack-10',
+            PhysicalResourceId: arn10,
+            ResourceStatus: 'DELETE_COMPLETE',
+            StackId: arn10,
+            StackName: 'test-stack-10',
+            Timestamp: new Date(),
+            EventId: '0002'
+          },
+          {
+            ResourceType: 'AWS::CloudFormation::Stack',
+            LogicalResourceId: 'test-stack-10',
+            PhysicalResourceId: arn10,
+            ResourceStatus: 'DELETE_IN_PROGRESS',
+            ResourceStatusReason: 'User Initiated',
+            StackId: arn10,
+            StackName: 'test-stack-10',
+            Timestamp: new Date(),
+            EventId: '0001'
+          }
+        ]]))
+
+      await index.startToMonitorDeletingStacks()
+
+      const logLines = getLogLines()
+      expect(logLines).to.have.lengthOf(3)
+      expect(logLines[0]).to.match(/1 stack is being deleted./)
     })
   })
 })

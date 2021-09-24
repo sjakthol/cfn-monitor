@@ -5,9 +5,9 @@ const util = require('util')
 
 const {
   CloudFormationClient,
-  DescribeStacksCommand
+  DescribeStacksCommand,
+  ListStacksCommand
 } = require('@aws-sdk/client-cloudformation')
-const AWS = require('@aws-sdk/client-cloudformation')
 const chalk = require('chalk')
 const randomColor = require('random-color')
 
@@ -120,8 +120,9 @@ async function maybeStartToMonitorStack (input) {
 }
 
 async function startToMonitorInProgressStacks () {
-  const cfn = new AWS.CloudFormation({})
-  const res = await cfn.listStacks({ StackStatusFilter: IN_PROGRESS_STATUSES })
+  const cfn = new CloudFormationClient({})
+  const cmd = new ListStacksCommand({ StackStatusFilter: IN_PROGRESS_STATUSES })
+  const res = await cfn.send(cmd)
   const stacks = res.StackSummaries
   if (stacks.length === 0) {
     output.write(
@@ -129,34 +130,29 @@ async function startToMonitorInProgressStacks () {
         'INFO'
       )}: No stacks are being created / deleted / updated. Exiting`
     )
-    process.exit(0)
+    return process.exit(0)
   }
 
   output.write(
     `${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'
     } being changed.`
   )
-  stacks.forEach((stack) => {
-    maybeStartToMonitorStack(stack.StackId)
-  })
+
+  await Promise.all(stacks.map(stack => maybeStartToMonitorStack(stack.StackId)))
 }
 
 async function startToMonitorDeletingStacks () {
-  const cfn = new AWS.CloudFormation({})
-  const res = await cfn.listStacks({
-    StackStatusFilter: ['DELETE_IN_PROGRESS']
-  })
-
+  const cfn = new CloudFormationClient({})
+  const cmd = new ListStacksCommand({ StackStatusFilter: ['DELETE_IN_PROGRESS'] })
+  const res = await cfn.send(cmd)
   const stacks = res.StackSummaries
   if (stacks.length === 0) {
     output.write(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
-    process.exit(0)
+    return process.exit(0)
   }
 
   output.write(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
-  stacks.forEach(stack => {
-    maybeStartToMonitorStack(stack.StackId)
-  })
+  await Promise.all(stacks.map(stack => maybeStartToMonitorStack(stack.StackId)))
 }
 
 function run () {
@@ -210,6 +206,7 @@ function run () {
   }
 }
 
+/* istanbul ignore next */
 if (require.main === module) {
   run()
 }
