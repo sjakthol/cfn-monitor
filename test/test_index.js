@@ -580,7 +580,7 @@ describe('index', function () {
         mockCfnEvents.updateStackEvents(arn16, 'test-stack-16')
       ))
 
-      stdinMock.restore()
+      process.stdin.isTTY = true
       await Promise.all(await index.run())
 
       const logLines = getLogLines()
@@ -618,8 +618,7 @@ describe('index', function () {
         mockCfnEvents.updateStackEvents(arn17, 'test-stack-17')
       ))
 
-      stdinMock.restore()
-
+      process.stdin.isTTY = true
       process.argv = ['node', 'index.js', arn17]
       await Promise.all(await index.run())
 
