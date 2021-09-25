@@ -139,7 +139,7 @@ describe('integration test', function () {
     process.argv = ['node', 'index.js', ...stacks]
 
     const index = require('../index')
-    await Promise.all(index.run())
+    await Promise.all(await index.run())
   })
 
   it('should monitor all stacks if no args nor stdin is provided', async function () {
@@ -151,7 +151,7 @@ describe('integration test', function () {
     process.argv = ['node', 'index.js']
 
     const index = require('../index')
-    await Promise.all(index.run())
+    await Promise.all(await index.run())
 
     const logLines = getLogLines()
     expect(logLines[0]).to.match(/Starting to monitor all stacks that are being modified/)

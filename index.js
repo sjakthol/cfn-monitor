@@ -155,7 +155,7 @@ async function startToMonitorDeletingStacks () {
   await Promise.all(stacks.map(stack => maybeStartToMonitorStack(stack.StackId)))
 }
 
-function run () {
+async function run () {
   const promises = []
   // See if we have a stack ARN(s) given as command line argument(s)
   if (process.argv.length > 2) {
@@ -175,7 +175,7 @@ function run () {
 
     rl.on('line', line => {
       // echo to stdout
-      output.write(line)
+      console.log(line)
       promises.push(maybeStartToMonitorStack(line))
 
       if (!isDeploy && line.match(/Waiting for stack create\/update to complete/)) {
@@ -188,15 +188,18 @@ function run () {
       }
     })
 
-    rl.on('close', () => {
-      if (!monitoredStacks && !isDeploy) {
-        output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
-          'did not produce any output. Assuming it was a delete-stack operation. ' +
-          'Starting to monitor stacks that are being deleted.')
-        promises.push(startToMonitorDeletingStacks())
-      }
+    await new Promise(resolve => {
+      rl.on('close', () => {
+        if (!monitoredStacks && !isDeploy) {
+          output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
+            'did not produce any output. Assuming it was a delete-stack operation. ' +
+            'Starting to monitor stacks that are being deleted.')
+          promises.push(startToMonitorDeletingStacks())
+        }
 
-      inputFinished = true
+        inputFinished = true
+        resolve()
+      })
     })
   } else {
     if (!monitoredStacks) {
@@ -215,8 +218,8 @@ if (require.main === module) {
 }
 
 module.exports = {
-  startToMonitorInProgressStacks,
-  startToMonitorDeletingStacks,
   maybeStartToMonitorStack,
-  run
+  run,
+  startToMonitorDeletingStacks,
+  startToMonitorInProgressStacks
 }

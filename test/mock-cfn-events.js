@@ -172,8 +172,76 @@ function mockDescribeStackEvents (eventsAddedPerPollingRound) {
   }
 }
 
+/**
+ * Sample events for stack that is being deleted.
+ *
+ * @param {string} stackid ARN of the stack that is being deleted
+ * @param {string} stackname Name of the stack that is being deleted
+ * @returns
+ */
+function deleteStackEvents (stackid, stackname) {
+  return [[
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: stackname,
+      PhysicalResourceId: stackid,
+      ResourceStatus: 'DELETE_COMPLETE',
+      StackId: stackid,
+      StackName: stackname,
+      Timestamp: new Date(),
+      EventId: '0002'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: stackname,
+      PhysicalResourceId: stackid,
+      ResourceStatus: 'DELETE_IN_PROGRESS',
+      ResourceStatusReason: 'User Initiated',
+      StackId: stackid,
+      StackName: stackname,
+      Timestamp: new Date(),
+      EventId: '0001'
+    }
+  ]]
+}
+
+/**
+ * Sample events for stack that is being updated.
+ *
+ * @param {string} stackid ARN of the stack that is being updated
+ * @param {string} stackname Name of the stack that is being updated
+ * @returns
+ */
+function updateStackEvents (stackid, stackname) {
+  return [[
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: stackname,
+      PhysicalResourceId: stackid,
+      ResourceStatus: 'UPDATE_COMPLETE',
+      StackId: stackid,
+      StackName: stackname,
+      Timestamp: new Date(),
+      EventId: '0002'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: stackname,
+      PhysicalResourceId: stackid,
+      ResourceStatus: 'UPDATE_IN_PROGRESS',
+      ResourceStatusReason: 'User Initiated',
+      StackId: stackid,
+      StackName: stackname,
+      Timestamp: new Date(),
+      EventId: '0001'
+    }
+  ]]
+}
+
 module.exports = {
   mockDescribeStackEvents,
   SampleStackEventsPerPollingRound,
-  SampleStackEventsPerPollingRoundSimple
+  SampleStackEventsPerPollingRoundSimple,
+  deleteStackEvents,
+  updateStackEvents
 }
