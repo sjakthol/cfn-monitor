@@ -14,7 +14,6 @@ const {
   ListStacksCommand
 } = require('@aws-sdk/client-cloudformation')
 
-
 const output = require('../lib/output')
 const mockCfnEvents = require('./mock-cfn-events')
 
