@@ -27,19 +27,6 @@ const IN_PROGRESS_STATUSES = [
 ]
 
 const monitoredStackArns = new Set()
-let monitoredStacks = 0
-let inputFinished = false
-
-function maybeExit () {
-  if (monitoredStacks === 0 && inputFinished) {
-    process.exit(0)
-  }
-}
-
-function stackMonitoringFinished () {
-  monitoredStacks -= 1
-  maybeExit()
-}
 
 /**
  * Checks the given input for CloudFormation stack ARN and
@@ -60,7 +47,6 @@ async function maybeStartToMonitorStack (input) {
   }
 
   monitoredStackArns.add(info.arn)
-  monitoredStacks += 1
 
   const color = randomColor().hexString()
   const cfn = new CloudFormationClient({ region: info.region })
@@ -68,7 +54,6 @@ async function maybeStartToMonitorStack (input) {
   const res = await cfn.send(cmd).catch((err) => {
     if (err.message.endsWith('does not exist')) {
       output.write(chalk.hex(color)(info.name), 'Stack does not exist')
-      stackMonitoringFinished()
       return
     }
 
@@ -81,7 +66,6 @@ async function maybeStartToMonitorStack (input) {
   const status = stack.StackStatus
   if (!status.endsWith('_IN_PROGRESS')) {
     output.write(chalk.hex(color)(info.name), 'No operations ongoing')
-    stackMonitoringFinished()
     return
   }
 
@@ -116,7 +100,6 @@ async function maybeStartToMonitorStack (input) {
   }
 
   await Promise.all(nestedStacks)
-  stackMonitoringFinished()
 }
 
 async function startToMonitorInProgressStacks () {
@@ -128,9 +111,9 @@ async function startToMonitorInProgressStacks () {
     output.write(
       `${chalk.green(
         'INFO'
-      )}: No stacks are being created / deleted / updated. Exiting`
+      )}: No stacks are being created / deleted / updated.`
     )
-    return process.exit(0)
+    return
   }
 
   output.write(
@@ -142,13 +125,13 @@ async function startToMonitorInProgressStacks () {
 }
 
 async function startToMonitorDeletingStacks () {
-  const cfn = new CloudFormationClient({})
+  const cfn = new CloudFormationClient({ maxAttempts: 10 })
   const cmd = new ListStacksCommand({ StackStatusFilter: ['DELETE_IN_PROGRESS'] })
   const res = await cfn.send(cmd)
   const stacks = res.StackSummaries
   if (stacks.length === 0) {
-    output.write(`${chalk.green('INFO')}: No stacks are being deleted. Exiting`)
-    return process.exit(0)
+    output.write(`${chalk.green('INFO')}: No stacks are being deleted.`)
+    return
   }
 
   output.write(`${chalk.green('INFO')}: ${stacks.length} stack${stacks.length === 1 ? ' is' : 's are'} being deleted.`)
@@ -190,19 +173,18 @@ async function run () {
 
     await new Promise(resolve => {
       rl.on('close', () => {
-        if (!monitoredStacks && !isDeploy) {
+        if (!monitoredStackArns.size && !isDeploy) {
           output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
             'did not produce any output. Assuming it was a delete-stack operation. ' +
             'Starting to monitor stacks that are being deleted.')
           promises.push(startToMonitorDeletingStacks())
         }
 
-        inputFinished = true
         resolve()
       })
     })
   } else {
-    if (!monitoredStacks) {
+    if (!monitoredStackArns.size) {
       output.write(chalk.green('INFO') + ': No input nor stacks from the command ' +
         'line. Starting to monitor all stacks that are being modified.')
       promises.push(startToMonitorInProgressStacks())
