@@ -49,7 +49,7 @@ async function maybeStartToMonitorStack (input) {
   monitoredStackArns.add(info.arn)
 
   const color = randomColor().hexString()
-  const cfn = new CloudFormationClient({ region: info.region })
+  const cfn = new CloudFormationClient({ region: info.region, maxAttempts: 10 })
   const cmd = new DescribeStacksCommand({ StackName: info.arn })
   const res = await cfn.send(cmd).catch((err) => {
     if (err.message.endsWith('does not exist')) {
@@ -103,7 +103,7 @@ async function maybeStartToMonitorStack (input) {
 }
 
 async function startToMonitorInProgressStacks () {
-  const cfn = new CloudFormationClient({})
+  const cfn = new CloudFormationClient({ maxAttempts: 10 })
   const cmd = new ListStacksCommand({ StackStatusFilter: IN_PROGRESS_STATUSES })
   const res = await cfn.send(cmd)
   const stacks = res.StackSummaries
