@@ -169,17 +169,17 @@ describe('index', function () {
       // Second attempt: update has started
       cfMock.reset()
       cfMock
-      .on(DescribeStacksCommand, {
-        StackName: arn5
-      })
-      .resolves({
-        Stacks: [{
-          StackStatus: 'UPDATE_IN_PROGRESS',
-          StackName: 'test-stack-5',
-          StackId: arn5,
-          CreationTime: new Date()
-        }]
-      })
+        .on(DescribeStacksCommand, {
+          StackName: arn5
+        })
+        .resolves({
+          Stacks: [{
+            StackStatus: 'UPDATE_IN_PROGRESS',
+            StackName: 'test-stack-5',
+            StackId: arn5,
+            CreationTime: new Date()
+          }]
+        })
       cfMock.on(DescribeStackEventsCommand, {
         StackName: arn5
       }).callsFake(mockCfnEvents.mockDescribeStackEvents(
