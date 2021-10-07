@@ -146,26 +146,52 @@ describe('index', function () {
       expect(logLines).to.have.lengthOf(1)
       expect(logLines[0]).to.match(/No operations ongoing/)
     })
-    it('should skip stacks that are already monitored', async function () {
+
+    it('should monitor the same stack twice', async function () {
+      const arn5 = getSampleArn(5)
+
+      // First attempt: no operations ongoing
       cfMock
         .on(DescribeStacksCommand, {
-          StackName: SAMPLE_STACK_ARN + 5
+          StackName: arn5
         })
         .resolves({
           Stacks: [{
             StackStatus: 'CREATE_COMPLETE',
             StackName: 'test-stack',
-            StackId: 'test-stack/1',
+            StackId: arn5,
             CreationTime: new Date()
           }]
         })
 
-      await index.maybeStartToMonitorStack(SAMPLE_STACK_ARN + 5)
-      await index.maybeStartToMonitorStack(SAMPLE_STACK_ARN + 5)
+      await index.maybeStartToMonitorStack(arn5)
+
+      // Second attempt: update has started
+      cfMock.reset()
+      cfMock
+      .on(DescribeStacksCommand, {
+        StackName: arn5
+      })
+      .resolves({
+        Stacks: [{
+          StackStatus: 'UPDATE_IN_PROGRESS',
+          StackName: 'test-stack-5',
+          StackId: arn5,
+          CreationTime: new Date()
+        }]
+      })
+      cfMock.on(DescribeStackEventsCommand, {
+        StackName: arn5
+      }).callsFake(mockCfnEvents.mockDescribeStackEvents(
+        mockCfnEvents.updateStackEvents(arn5, 'test-stack-5')
+      ))
+      await index.maybeStartToMonitorStack(arn5)
 
       const logLines = getLogLines()
-      expect(logLines).to.have.lengthOf(1)
+      expect(logLines).to.have.lengthOf(3)
       expect(logLines[0]).to.match(/No operations ongoing/)
+      expect(logLines[1]).to.match(/UPDATE_IN_PROGRESS/)
+      expect(logLines[2]).to.match(/UPDATE_COMPLETE/)
     })
 
     it('should monitor nested stacks as well', async function () {

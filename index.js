@@ -26,6 +26,7 @@ const IN_PROGRESS_STATUSES = [
   'UPDATE_ROLLBACK_IN_PROGRESS'
 ]
 
+const seenStackArns = new Set()
 const monitoredStackArns = new Set()
 
 /**
@@ -41,12 +42,7 @@ async function maybeStartToMonitorStack (input) {
     return
   }
 
-  if (monitoredStackArns.has(info.arn)) {
-    // Skip this stack. It's being monitored already.
-    return
-  }
-
-  monitoredStackArns.add(info.arn)
+  seenStackArns.add(info.arn)
 
   const color = randomColor().hexString()
   const cfn = new CloudFormationClient({ region: info.region, maxAttempts: 10 })
@@ -69,6 +65,12 @@ async function maybeStartToMonitorStack (input) {
     return
   }
 
+  if (monitoredStackArns.has(info.arn)) {
+    // Skip this stack. It's being monitored already.
+    return
+  }
+
+  monitoredStackArns.add(info.arn)
   const nestedStacks = []
   for await (const e of cfnEvents.streamStackEvents(
     stack.StackName,
@@ -99,6 +101,7 @@ async function maybeStartToMonitorStack (input) {
     }
   }
 
+  monitoredStackArns.delete(info.arn)
   await Promise.all(nestedStacks)
 }
 
@@ -155,12 +158,13 @@ async function run () {
     })
 
     let isDeploy = false
+    let hasContent = false
 
     rl.on('line', line => {
       // echo to stdout
       console.log(line)
       promises.push(maybeStartToMonitorStack(line))
-
+      hasContent = true
       if (!isDeploy && line.match(/Waiting for stack create\/update to complete/)) {
         output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
           'seems to be aws cloudformation deploy. The command does not echo the ' +
@@ -173,7 +177,7 @@ async function run () {
 
     await new Promise(resolve => {
       rl.on('close', () => {
-        if (!monitoredStackArns.size && !isDeploy) {
+        if (!hasContent) {
           output.write(chalk.green('INFO') + ': The command piped to cfn-monitor ' +
             'did not produce any output. Assuming it was a delete-stack operation. ' +
             'Starting to monitor stacks that are being deleted.')
@@ -184,7 +188,7 @@ async function run () {
       })
     })
   } else {
-    if (!monitoredStackArns.size) {
+    if (!seenStackArns.size) {
       output.write(chalk.green('INFO') + ': No input nor stacks from the command ' +
         'line. Starting to monitor all stacks that are being modified.')
       promises.push(startToMonitorInProgressStacks())
