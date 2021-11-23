@@ -9,7 +9,7 @@ const {
   ListStacksCommand
 } = require('@aws-sdk/client-cloudformation')
 const chalk = require('chalk')
-const randomColor = require('random-color')
+const randomColor = require('randomcolor')
 
 const cfnEvents = require('./lib/cfn-events')
 const helpers = require('./lib/helpers')
@@ -44,7 +44,7 @@ async function maybeStartToMonitorStack (input) {
 
   seenStackArns.add(info.arn)
 
-  const color = randomColor().hexString()
+  const color = randomColor()
   const cfn = new CloudFormationClient({ region: info.region, maxAttempts: 10 })
   const cmd = new DescribeStacksCommand({ StackName: info.arn })
   const res = await cfn.send(cmd).catch((err) => {

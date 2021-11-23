@@ -27,7 +27,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.33.0",
     "chalk": "^4.1.2",
-    "random-color": "^1.0.1"
+    "randomcolor": "^0.6.2"
   },
   "engines": {
     "node": ">=12"
