@@ -71,4 +71,26 @@ describe('cfn-events', function () {
       '0005'
     ])
   })
+
+  it('should handle cleanup states correctly', async function () {
+    cfMock
+      .on(DescribeStackEventsCommand, {
+        StackName: 'test-stack-id'
+      })
+      .callsFake(mockCfnEvents.mockDescribeStackEvents(mockCfnEvents.SampleStackEventsPerPollingRoundWithCleanup))
+    const events = await utils.asyncGeneratorToArray(
+      cfnEvents.streamStackEvents(
+        'test-stack',
+        'test-stack-id',
+        'eu-north-1'
+      )
+    )
+    expect(events.map((e) => e.EventId)).to.deep.equal([
+      '0002',
+      '0003',
+      '0004',
+      '0005',
+      '0006'
+    ])
+  })
 })

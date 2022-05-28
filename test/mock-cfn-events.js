@@ -128,6 +128,72 @@ const SampleStackEventsPerPollingRoundSimple = [
   ]
 ]
 
+const SampleStackEventsPerPollingRoundWithCleanup = [
+  [
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'UPDATE_COMPLETE',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0006'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'UPDATE_CLEANUP_IN_PROGRESS',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0005'
+    },
+    {
+      ResourceType: 'AWS::SNS::Topic',
+      LogicalResourceId: 'test-topic',
+      PhysicalResourceId: 'test-topic',
+      ResourceStatus: 'UPDATE_COMPLETE',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0004'
+    },
+    {
+      ResourceType: 'AWS::SNS::Topic',
+      LogicalResourceId: 'test-topic',
+      PhysicalResourceId: 'test-topic',
+      ResourceStatus: 'UPDATE_IN_PROGRESS',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0003'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'UPDATE_IN_PROGRESS',
+      ResourceStatusReason: 'User Initiated',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0002'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'CREATE_COMPLETE',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0001'
+    }
+  ]
+]
+
 /**
  * Mock DescribeStackEvents to yield certain events after each
  * polling round.
@@ -242,6 +308,7 @@ module.exports = {
   mockDescribeStackEvents,
   SampleStackEventsPerPollingRound,
   SampleStackEventsPerPollingRoundSimple,
+  SampleStackEventsPerPollingRoundWithCleanup,
   deleteStackEvents,
   updateStackEvents
 }
