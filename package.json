@@ -7,7 +7,7 @@
     "cfn-monitor": "index.js"
   },
   "scripts": {
-    "test": "nyc --all mocha",
+    "test": "c8 --check-coverage --all mocha",
     "lint": "standard"
   },
   "files": [
@@ -34,11 +34,11 @@
   },
   "devDependencies": {
     "aws-sdk-client-mock": "^0.6.0",
+    "c8": "^7.11.3",
     "chai": "^4.2.0",
     "dirty-chai": "^2.0.1",
     "mocha": "^10.0.0",
     "mock-stdin": "^1.0.0",
-    "nyc": "^15.0.0",
     "sinon": "^14.0.0",
     "sinon-chai": "^3.7.0",
     "standard": "^17.0.0"
