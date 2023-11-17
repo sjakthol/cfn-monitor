@@ -28,8 +28,8 @@ async function createSampleStack () {
     OnFailure: 'DELETE',
     TemplateBody: JSON.stringify({
       Resources: {
-        Topic1: {
-          Type: 'AWS::SNS::Topic'
+        R1: {
+          Type: 'AWS::CloudFormation::WaitConditionHandle'
         }
       }
     })
