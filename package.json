@@ -27,7 +27,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudformation": "3.470.0",
     "@aws-sdk/credential-provider-ini": "3.465.0",
-    "@aws-sdk/credential-provider-sso": "3.465.0",
+    "@aws-sdk/credential-provider-sso": "3.470.0",
     "chalk": "^4.1.2",
     "randomcolor": "^0.6.2"
   },
