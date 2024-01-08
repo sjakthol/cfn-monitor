@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": "sjakthol/cfn-monitor",
   "dependencies": {
-    "@aws-sdk/client-cloudformation": "3.484.0",
+    "@aws-sdk/client-cloudformation": "3.485.0",
     "@aws-sdk/credential-provider-ini": "3.485.0",
     "@aws-sdk/credential-provider-sso": "3.485.0",
     "chalk": "^4.1.2",
