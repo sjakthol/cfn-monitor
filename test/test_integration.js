@@ -10,6 +10,7 @@ const {
   CloudFormationClient,
   CreateStackCommand,
   DeleteStackCommand,
+  UpdateStackCommand,
   waitUntilStackCreateComplete
 } = require('@aws-sdk/client-cloudformation')
 
@@ -94,6 +95,28 @@ describe('integration test', function () {
     if (!stackId) {
       return this.skip()
     }
+    await index.maybeStartToMonitorStack(stackId)
+  })
+
+  it('should handle updates with cleanup steps correctly', async function () {
+    const index = require('../index')
+    const stackId = await createSampleStack()
+    if (!stackId) {
+      return this.skip()
+    }
+
+    await waitUntilStackCreateComplete({ client, maxWaitTime: 120 }, { StackName: stackId })
+
+    await client.send(new UpdateStackCommand({
+      StackName: stackId,
+      TemplateBody: JSON.stringify({
+        Resources: {
+          R2: {
+            Type: 'AWS::CloudFormation::WaitConditionHandle'
+          }
+        }
+      })
+    }))
     await index.maybeStartToMonitorStack(stackId)
   })
 
