@@ -194,6 +194,63 @@ const SampleStackEventsPerPollingRoundWithCleanup = [
   ]
 ]
 
+const SampleStackEventsDeleteFailedState = [
+  [
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'DELETE_FAILED',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0005'
+    },
+    {
+      ResourceType: 'AWS::S3::Bucket',
+      LogicalResourceId: 'Bucket',
+      PhysicalResourceId: 'test-bucket-igivftgohq4l',
+      ResourceStatus: 'DELETE_FAILED',
+      ResourceStatusReason: 'Resource handler returned message: "The bucket you tried to delete is not empty (Service: S3, Status Code: 409, Request ID: J4BPF9MYZP36KZZH, Extended Request ID: 824TafEaWLY3RO8AbKUMQGxcAIZmL0++mj+YgjdOro7OBaqV2thjjJ7KJMub22CaQ/1yG+g6PYo=)" (RequestToken: 65009dd2-331d-4476-04b2-838fcc5930ec, HandlerErrorCode: GeneralServiceException)',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0004'
+    },
+    {
+      ResourceType: 'AWS::S3::Bucket',
+      LogicalResourceId: 'Bucket',
+      PhysicalResourceId: 'test-bucket-igivftgohq4l',
+      ResourceStatus: 'DELETE_IN_PROGRESS',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0003'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'DELETE_IN_PROGRESS',
+      ResourceStatusReason: 'User Initiated',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0002'
+    },
+    {
+      ResourceType: 'AWS::CloudFormation::Stack',
+      LogicalResourceId: 'test-stack',
+      PhysicalResourceId: 'test-stack-id',
+      ResourceStatus: 'CREATE_COMPLETE',
+      StackId: 'test-stack-id',
+      StackName: 'test-stack',
+      Timestamp: new Date(),
+      EventId: '0001'
+    }
+  ]
+]
+
 /**
  * Mock DescribeStackEvents to yield certain events after each
  * polling round.
@@ -309,6 +366,7 @@ module.exports = {
   SampleStackEventsPerPollingRound,
   SampleStackEventsPerPollingRoundSimple,
   SampleStackEventsPerPollingRoundWithCleanup,
+  SampleStackEventsDeleteFailedState,
   deleteStackEvents,
   updateStackEvents
 }
