@@ -1,6 +1,6 @@
 {
   "name": "cfn-monitor",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "description": "A tool for monitoring the progress of AWS CloudFormation stack events during the creation or update of a stack.",
   "main": "index.js",
   "bin": {
