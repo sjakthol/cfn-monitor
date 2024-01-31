@@ -11,33 +11,6 @@ const {
 const chalk = require('chalk')
 const randomColor = require('randomcolor')
 
-// Workaround for https://github.com/aws/aws-sdk-js-v3/issues/4757.
-//
-// resolveProfileData is unable to resolve credentials for an SSO profile that uses the sso_session
-// option. This is because resolveProfileData does not resolve parameteters from the linked
-// sso-session.
-//
-// Here we monkeypatch the resolveProfileData method, catch errors that occur during its execution
-// and check if the error looks sso_session related. If so, we try to load credentials for the profile
-// with the fromSSO() method that also loads parameters from the linked sso-session.
-const { fromSSO } = require('@aws-sdk/credential-provider-sso')
-const resolveProfileDataModule = require('@aws-sdk/credential-provider-ini/dist-cjs/resolveProfileData.js')
-const resolveProfileData = resolveProfileDataModule.resolveProfileData
-resolveProfileDataModule.resolveProfileData = async (profileName, profiles, options, visitedProfiles = {}) => {
-  try {
-    return (await resolveProfileData(profileName, profiles, options, visitedProfiles))
-  } catch (e) {
-    if (/Profile is configured with invalid SSO credentials. Required parameters/.test(e.message)) {
-      // resolveProfileData() failed as an SSO profile profile being an SSO profile with some parameters being
-      // defined via sso-session. Try to load credentials with fromSSO() instead as that can resolve
-      // parameters from the linked sso-session.
-      return fromSSO({ profile: profileName })()
-    }
-
-    throw e
-  }
-}
-
 const cfnEvents = require('./lib/cfn-events')
 const helpers = require('./lib/helpers')
 const output = require('./lib/output')
