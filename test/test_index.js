@@ -1,8 +1,6 @@
 /* eslint-env mocha */
-import chai from 'chai'
+import { expect } from 'chai'
 import sinon from 'sinon'
-import sinonChai from 'sinon-chai'
-import dirtyChai from 'dirty-chai'
 import mockStdin from 'mock-stdin'
 
 import { mockClient } from 'aws-sdk-client-mock'
@@ -15,9 +13,6 @@ import {
 
 import output from '../lib/output.js'
 import mockCfnEvents from './mock-cfn-events.js'
-const expect = chai.expect
-chai.use(sinonChai)
-chai.use(dirtyChai)
 
 const SAMPLE_STACK_ARN = 'arn:aws:cloudformation:eu-west-1:0123456789012:stack/test-stack/1'
 
@@ -81,7 +76,7 @@ describe('index', function () {
         })
 
       await index.maybeStartToMonitorStack(SAMPLE_STACK_ARN + 1)
-      expect(logStub).to.have.calledOnce()
+      expect(logStub.callCount).to.deep.equal(1)
       expect(logStub.getCall(0).args.join(' ')).to.match(/test-stack.+Stack does not exist/)
     })
 

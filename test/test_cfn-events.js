@@ -1,5 +1,5 @@
 /* eslint-env mocha */
-import chai from 'chai'
+import { expect } from 'chai'
 import { mockClient } from 'aws-sdk-client-mock'
 
 import {
@@ -10,7 +10,6 @@ import {
 import cfnEvents from '../lib/cfn-events.js'
 import utils from './utils.js'
 import mockCfnEvents from './mock-cfn-events.js'
-const expect = chai.expect
 
 describe('cfn-events', function () {
   let cfMock

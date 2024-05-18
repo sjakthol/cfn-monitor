@@ -1,8 +1,6 @@
 /* eslint-env mocha */
-import chai from 'chai'
+import { expect } from 'chai'
 import sinon from 'sinon'
-import sinonChai from 'sinon-chai'
-import dirtyChai from 'dirty-chai'
 
 import crypto from 'crypto'
 import {
@@ -14,9 +12,6 @@ import {
 } from '@aws-sdk/client-cloudformation'
 
 import output from '../lib/output.js'
-const expect = chai.expect
-chai.use(sinonChai)
-chai.use(dirtyChai)
 
 const RUN_ID = Date.now() + '-' + crypto.randomBytes(4).toString('hex')
 const client = new CloudFormationClient({})
