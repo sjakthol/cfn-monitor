@@ -17,6 +17,10 @@ const RUN_ID = Date.now() + '-' + crypto.randomBytes(4).toString('hex')
 const client = new CloudFormationClient({})
 const stacks = []
 
+const WAITER_OPTIONS = {
+  maxWaitTime: 120, minDelay: 1, maxDelay: 1
+}
+
 async function createSampleStack () {
   const StackName = `cfn-monitor-${RUN_ID}-${crypto.randomBytes(4).toString('hex')}`
   console.error(`Creating stack ${StackName}`)
@@ -55,7 +59,7 @@ async function createSampleStack () {
 }
 
 describe('integration test', function () {
-  this.timeout(120000)
+  this.timeout(30000)
   let logStub
   const getLogLines = () => logStub.getCalls().map(call => call.args.join(' '))
   const origArgv = process.argv
@@ -98,7 +102,7 @@ describe('integration test', function () {
       return this.skip()
     }
 
-    await waitUntilStackCreateComplete({ client, maxWaitTime: 120 }, { StackName: stackId })
+    await waitUntilStackCreateComplete({ client, ...WAITER_OPTIONS }, { StackName: stackId })
 
     await client.send(new UpdateStackCommand({
       StackName: stackId,
@@ -140,7 +144,7 @@ describe('integration test', function () {
       return this.skip()
     }
 
-    await waitUntilStackCreateComplete({ client, maxWaitTime: 120 }, { StackName: stack1 })
+    await waitUntilStackCreateComplete({ client, ...WAITER_OPTIONS }, { StackName: stack1 })
 
     client.send(new DeleteStackCommand({ StackName: stack1 }))
     await index.startToMonitorDeletingStacks()
