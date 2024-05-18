@@ -1,20 +1,22 @@
 /* eslint-env mocha */
-const chai = require('chai')
-const expect = chai.expect
-const sinon = require('sinon')
-chai.use(require('sinon-chai'))
-chai.use(require('dirty-chai'))
+import chai from 'chai'
+import sinon from 'sinon'
+import sinonChai from 'sinon-chai'
+import dirtyChai from 'dirty-chai'
 
-const crypto = require('crypto')
-const {
+import crypto from 'crypto'
+import {
   CloudFormationClient,
   CreateStackCommand,
   DeleteStackCommand,
   UpdateStackCommand,
   waitUntilStackCreateComplete
-} = require('@aws-sdk/client-cloudformation')
+} from '@aws-sdk/client-cloudformation'
 
-const output = require('../lib/output')
+import output from '../lib/output.js'
+const expect = chai.expect
+chai.use(sinonChai)
+chai.use(dirtyChai)
 
 const RUN_ID = Date.now() + '-' + crypto.randomBytes(4).toString('hex')
 const client = new CloudFormationClient({})
@@ -69,10 +71,6 @@ describe('integration test', function () {
     sandbox.stub(process, 'exit')
   })
 
-  beforeEach(() => {
-    delete require.cache[require.resolve('../index')]
-  })
-
   afterEach(async () => {
     process.argv = origArgv
     sandbox.reset()
@@ -90,7 +88,7 @@ describe('integration test', function () {
   })
 
   it('should monitor in progress stacks correctly', async function () {
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     const stackId = await createSampleStack()
     if (!stackId) {
       return this.skip()
@@ -99,7 +97,7 @@ describe('integration test', function () {
   })
 
   it('should handle updates with cleanup steps correctly', async function () {
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     const stackId = await createSampleStack()
     if (!stackId) {
       return this.skip()
@@ -121,7 +119,7 @@ describe('integration test', function () {
   })
 
   it('should monitor multiple in-progress stacks correctly', async function () {
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     const stacks = (await Promise.all([createSampleStack(), createSampleStack()])).filter(s => s)
     if (stacks.length === 0) {
       return this.skip()
@@ -131,7 +129,7 @@ describe('integration test', function () {
   })
 
   it('should monitor multiple in-progress stacks correctly with startToMonitorInProgressStacks', async function () {
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     const stacks = (await Promise.all([createSampleStack(), createSampleStack()])).filter(s => s)
     if (stacks.length === 0) {
       return this.skip()
@@ -141,7 +139,7 @@ describe('integration test', function () {
   })
 
   it('should monitor deleting stacks correctly with startToMonitorDeletingStacks', async function () {
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     const stack1 = await createSampleStack()
     if (!stack1) {
       return this.skip()
@@ -161,7 +159,7 @@ describe('integration test', function () {
 
     process.argv = ['node', 'index.js', ...stacks]
 
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     await Promise.all(await index.run())
   })
 
@@ -173,7 +171,7 @@ describe('integration test', function () {
 
     process.argv = ['node', 'index.js']
 
-    const index = require('../index')
+    const index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     await Promise.all(await index.run())
 
     const logLines = getLogLines()

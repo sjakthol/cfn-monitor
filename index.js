@@ -1,19 +1,21 @@
 #!/usr/bin/env node
 
-const readline = require('readline')
-const util = require('util')
+import { pathToFileURL } from 'url'
+import { realpathSync } from 'fs'
+import readline from 'readline'
+import util from 'util'
 
-const {
+import {
   CloudFormationClient,
   DescribeStacksCommand,
   ListStacksCommand
-} = require('@aws-sdk/client-cloudformation')
-const chalk = require('chalk')
-const randomColor = require('randomcolor')
+} from '@aws-sdk/client-cloudformation'
+import chalk from 'chalk'
+import randomColor from 'randomcolor'
 
-const cfnEvents = require('./lib/cfn-events')
-const helpers = require('./lib/helpers')
-const output = require('./lib/output')
+import cfnEvents from './lib/cfn-events.js'
+import helpers from './lib/helpers.js'
+import output from './lib/output.js'
 
 const IN_PROGRESS_STATUSES = [
   'CREATE_IN_PROGRESS',
@@ -199,11 +201,11 @@ async function run () {
 }
 
 /* istanbul ignore next */
-if (require.main === module) {
+if (import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   run()
 }
 
-module.exports = {
+export {
   maybeStartToMonitorStack,
   run,
   startToMonitorDeletingStacks,

@@ -1,8 +1,8 @@
 /* eslint-env mocha */
-const chai = require('chai')
-const expect = chai.expect
+import chai from 'chai'
 
-const helpers = require('../lib/helpers')
+import helpers from '../lib/helpers.js'
+const expect = chai.expect
 
 describe('helpers module', function () {
   describe('getStackInfoFromInput()', function () {

@@ -1,21 +1,23 @@
 /* eslint-env mocha */
-const chai = require('chai')
-const expect = chai.expect
-const sinon = require('sinon')
-chai.use(require('sinon-chai'))
-chai.use(require('dirty-chai'))
-const mockStdin = require('mock-stdin')
+import chai from 'chai'
+import sinon from 'sinon'
+import sinonChai from 'sinon-chai'
+import dirtyChai from 'dirty-chai'
+import mockStdin from 'mock-stdin'
 
-const { mockClient } = require('aws-sdk-client-mock')
-const {
+import { mockClient } from 'aws-sdk-client-mock'
+import {
   CloudFormationClient,
   DescribeStacksCommand,
   DescribeStackEventsCommand,
   ListStacksCommand
-} = require('@aws-sdk/client-cloudformation')
+} from '@aws-sdk/client-cloudformation'
 
-const output = require('../lib/output')
-const mockCfnEvents = require('./mock-cfn-events')
+import output from '../lib/output.js'
+import mockCfnEvents from './mock-cfn-events.js'
+const expect = chai.expect
+chai.use(sinonChai)
+chai.use(dirtyChai)
 
 const SAMPLE_STACK_ARN = 'arn:aws:cloudformation:eu-west-1:0123456789012:stack/test-stack/1'
 
@@ -46,9 +48,8 @@ describe('index', function () {
     stdinMock = mockStdin.stdin()
   })
 
-  beforeEach(() => {
-    delete require.cache[require.resolve('../index')]
-    index = require('../index')
+  beforeEach(async () => {
+    index = await import(`../index.js?version=${Date.now() + Math.random()}`)
     logStub.returns(null)
   })
 

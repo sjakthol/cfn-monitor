@@ -13,6 +13,6 @@ async function asyncGeneratorToArray (gen) {
   return array
 }
 
-module.exports = {
+export default {
   asyncGeneratorToArray
 }

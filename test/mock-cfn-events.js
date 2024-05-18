@@ -361,7 +361,7 @@ function updateStackEvents (stackid, stackname) {
   ]]
 }
 
-module.exports = {
+export default {
   mockDescribeStackEvents,
   SampleStackEventsPerPollingRound,
   SampleStackEventsPerPollingRoundSimple,
