@@ -4,17 +4,17 @@ import sinon from 'sinon'
 
 import crypto from 'crypto'
 import {
-  CloudFormationClient,
   CreateStackCommand,
   DeleteStackCommand,
   UpdateStackCommand,
   waitUntilStackCreateComplete
 } from '@aws-sdk/client-cloudformation'
 
+import helpers from '../lib/helpers.js'
 import output from '../lib/output.js'
 
 const RUN_ID = Date.now() + '-' + crypto.randomBytes(4).toString('hex')
-const client = new CloudFormationClient({})
+const client = helpers.getCloudFormationClient({})
 const stacks = []
 
 const WAITER_OPTIONS = {
