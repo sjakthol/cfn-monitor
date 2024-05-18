@@ -1,16 +1,16 @@
 /* eslint-env mocha */
-const chai = require('chai')
-const expect = chai.expect
-const { mockClient } = require('aws-sdk-client-mock')
+import chai from 'chai'
+import { mockClient } from 'aws-sdk-client-mock'
 
-const {
+import {
   CloudFormationClient,
   DescribeStackEventsCommand
-} = require('@aws-sdk/client-cloudformation')
+} from '@aws-sdk/client-cloudformation'
 
-const cfnEvents = require('../lib/cfn-events')
-const utils = require('./utils')
-const mockCfnEvents = require('./mock-cfn-events')
+import cfnEvents from '../lib/cfn-events.js'
+import utils from './utils.js'
+import mockCfnEvents from './mock-cfn-events.js'
+const expect = chai.expect
 
 describe('cfn-events', function () {
   let cfMock
