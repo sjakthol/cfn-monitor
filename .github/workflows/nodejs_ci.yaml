@@ -3,20 +3,19 @@ name: Node.js CI
 on:
   workflow_dispatch: {}
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   AWS_REGION: us-west-2
 
 permissions:
-  id-token: write   # This is required for requesting the JWT
-  contents: read    # This is required for actions/checkout
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -24,17 +23,18 @@ jobs:
         node-version: [16, 18, 20, 22]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm run lint
-    - uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::471112959785:role/ew1-infra-github-actions-roles-CfnMonitorRole
-        role-session-name: actions-cfn-monitor
-        aws-region: ${{ env.AWS_REGION }}
-    - run: script -e -c "npm run test"
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm run lint
+        if: ${{ matrix.node-version > 16 }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::471112959785:role/ew1-infra-github-actions-roles-CfnMonitorRole
+          role-session-name: actions-cfn-monitor
+          aws-region: ${{ env.AWS_REGION }}
+      - run: script -e -c "npm run test"
