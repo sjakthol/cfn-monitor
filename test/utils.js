@@ -4,15 +4,15 @@
  * @param {*} gen Async generator to collect
  * @returns list
  */
-async function asyncGeneratorToArray (gen) {
-  const array = []
+async function asyncGeneratorToArray(gen) {
+  const array = [];
   for await (const item of gen) {
-    array.push(item)
+    array.push(item);
   }
 
-  return array
+  return array;
 }
 
 export default {
-  asyncGeneratorToArray
-}
+  asyncGeneratorToArray,
+};
