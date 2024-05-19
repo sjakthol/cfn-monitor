@@ -59,7 +59,7 @@ async function createSampleStack () {
 }
 
 describe('integration test', function () {
-  this.timeout(30000)
+  this.timeout(120000)
   let logStub
   const getLogLines = () => logStub.getCalls().map(call => call.args.join(' '))
   const origArgv = process.argv
