@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "aws-sdk-client-mock": "^4.0.0",
-    "c8": "^10.1.2",
+    "c8": "^11.0.0",
     "chai": "^6.0.1",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.0.1",
